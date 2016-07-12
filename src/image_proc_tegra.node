@@ -1,0 +1,58 @@
+#include "ros/ros.h"
+#include <image_transport/image_transport.h>
+#include "opencv2/opencv.hpp"
+#include "opencv2/core.hpp"
+#include "opencv2/highgui.hpp"
+#include "opencv2/gpu/gpu.hpp"
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
+#include <image_geometry/pinhole_camera_model.h>
+
+ros::Publisher pub;
+ros::Subscriber sub_info;
+
+bool camera_set = false;
+image_geometry::PinholeCameraModel camera;
+
+cv::gpu::GpuMat mapx, mapy;
+
+cv_bridge::CvImageConstPtr image;
+cv::Mat image_rect;
+
+void process_image(const sensor_msgs::ImageConstPtr& frame){
+  if(!camera_set){
+    return;
+  }
+  //image = cv_bridge::toCvShare(frame);
+  //cv::gpu::GpuMat image_gpu(image->image);
+  //cv::gpu::GpuMat image_gpu_rect(cv::Size(image->image.rows, image->image.cols), image->image.type());
+  //cv::gpu::remap(image_gpu, image_gpu_rect, mapx, mapy, cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+  //image_rect = cv::Mat(image_gpu_rect);
+ 
+  /*cv_bridge::CvImage out_msg;
+  out_msg.header   = frame->header;
+  out_msg.encoding = frame->encoding;
+  out_msg.image  = image_rect;
+  pub.publish(out_msg.toImageMsg());*/
+}
+
+void camera_info(const sensor_msgs::CameraInfoConstPtr& info_msg){
+  camera.fromCameraInfo(info_msg);
+  cv::Mat m1;
+  cv::Mat m2;
+  cv::initUndistortRectifyMap(camera.intrinsicMatrix(), camera.distortionCoeffs(), cv::Mat(), camera.intrinsicMatrix(), camera.fullResolution(), CV_32FC1, m1, m2);
+  mapx = cv::gpu::GpuMat(m1);
+  mapy = cv::gpu::GpuMat(m2);
+  sub_info.shutdown();
+  camera_set = true;
+}
+
+int main(int argc, char **argv){
+  ros::init(argc, argv, "image_proc_gpu");
+  ros::NodeHandle n;
+  ros::Subscriber sub = n.subscribe("image_raw", 10, process_image);
+  sub_info = n.subscribe("camera_info", 10, camera_info);
+  pub = n.advertise<sensor_msgs::Image>("image_rect", 10);
+
+  ros::spin();
+}
