@@ -3,6 +3,14 @@
 A ROS nodelet for image rectification using OpenCV's gpu functions. This nodelet is useful to reduce CPU usage in rectifying large video streams.
 The OpenCV install linked by ROS must have the gpu apis (ie. compiled with gpu support or using OpenCV4Tegra)
 
+Install:
+
+```
+cd ~/catkin_ws/src
+git clone https://github.com/Jack000/image_proc_tegra.git
+catkin_make
+```
+
 same topics as image_proc:
 
 ```
